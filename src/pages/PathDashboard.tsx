@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -7,19 +7,20 @@ import axios from "axios"
 const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://codex-engine-backend.onrender.com"
 const API_KEY = import.meta.env.VITE_PATH_API_KEY
 
+interface HealthData {
+  glyph: string
+  status: string
+  coherence_score: number
+  drift_score: number
+}
+
 export default function PathDashboard() {
-  const [health, setHealth] = useState(null)
+  const [health, setHealth] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    fetchHealth()
-    const interval = setInterval(fetchHealth, 60000) // every 60s
-    return () => clearInterval(interval)
-  }, [])
-
-  async function fetchHealth() {
+  const fetchHealth = useCallback(async () => {
     try {
-      const res = await axios.get(`${PATH_API_BASE}/api/path/dashboard/overview`, {
+      const res = await axios.get<HealthData>(`${PATH_API_BASE}/api/path/dashboard/overview`, {
         headers: {
           "X-API-Key": API_KEY
         }
@@ -30,17 +31,22 @@ export default function PathDashboard() {
       console.error("Failed to fetch PATH health:", err)
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    void fetchHealth()
+    const interval = setInterval(fetchHealth, 60000) // every 60s
+    return () => clearInterval(interval)
+  }, [fetchHealth])
 
   if (loading) return <div className="p-4 text-muted">Loading dashboard...</div>
   if (!health) return <div className="p-4 text-red-500">Failed to load data.</div>
 
-  const coherenceColor =
-    health.coherence_score >= 0.8
-      ? "green"
-      : health.coherence_score >= 0.5
-      ? "yellow"
-      : "red"
+  const getCoherenceColorClass = (score: number): string => {
+    if (score >= 0.8) return "text-green-500"
+    if (score >= 0.5) return "text-yellow-500"
+    return "text-red-500"
+  }
 
   return (
     <div className="grid grid-cols-2 gap-4 p-6">
@@ -54,7 +60,7 @@ export default function PathDashboard() {
           <div className="text-md">Status: <span className="font-medium">{health.status}</span></div>
           <div className="text-md">
             Coherence Score:
-            <span className={`ml-2 font-bold text-${coherenceColor}-500`}>
+            <span className={`ml-2 font-bold ${getCoherenceColorClass(health.coherence_score)}`}>
               {health.coherence_score.toFixed(3)}
             </span>
           </div>
