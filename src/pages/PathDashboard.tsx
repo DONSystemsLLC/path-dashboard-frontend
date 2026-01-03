@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,26 +19,34 @@ export default function PathDashboard() {
   const [health, setHealth] = useState<HealthData | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchHealth = useCallback(async () => {
-    try {
-      const res = await axios.get<HealthData>(`${PATH_API_BASE}/api/path/dashboard/overview`, {
-        headers: {
-          "X-API-Key": API_KEY
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function fetchHealth() {
+      try {
+        const res = await axios.get<HealthData>(`${PATH_API_BASE}/api/path/dashboard/overview`, {
+          headers: { "X-API-Key": API_KEY },
+          signal: controller.signal
+        })
+        setHealth(res.data)
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Failed to fetch PATH health:", err)
         }
-      })
-      setHealth(res.data)
-      setLoading(false)
-    } catch (err) {
-      console.error("Failed to fetch PATH health:", err)
-      setLoading(false)
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void fetchHealth()
+    const interval = setInterval(fetchHealth, 60000)
+    return () => {
+      controller.abort()
+      clearInterval(interval)
     }
   }, [])
-
-  useEffect(() => {
-    void fetchHealth()
-    const interval = setInterval(fetchHealth, 60000) // every 60s
-    return () => clearInterval(interval)
-  }, [fetchHealth])
 
   if (loading) return <div className="p-4 text-muted">Loading dashboard...</div>
   if (!health) return <div className="p-4 text-red-500">Failed to load data.</div>

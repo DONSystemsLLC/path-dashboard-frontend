@@ -20,24 +20,32 @@ export default function CollapseFeed() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    void fetchCollapseFeed()
-  }, [])
+    const controller = new AbortController()
 
-  async function fetchCollapseFeed() {
-    try {
-      const res = await axios.get<{ events: CollapseEvent[] }>(
-        `${PATH_API_BASE}/api/path/collapse-feed?topic=${encodeURIComponent(GLYPH_STREAM)}`,
-        {
-          headers: { "X-API-Key": API_KEY }
+    async function fetchCollapseFeed() {
+      try {
+        const res = await axios.get<{ events: CollapseEvent[] }>(
+          `${PATH_API_BASE}/api/path/collapse-feed?topic=${encodeURIComponent(GLYPH_STREAM)}`,
+          {
+            headers: { "X-API-Key": API_KEY },
+            signal: controller.signal
+          }
+        )
+        setEvents(res.data.events || [])
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.error("Error loading collapse feed:", err)
         }
-      )
-      setEvents(res.data.events || [])
-      setLoading(false)
-    } catch (err) {
-      console.error("Error loading collapse feed:", err)
-      setLoading(false)
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
+      }
     }
-  }
+
+    void fetchCollapseFeed()
+    return () => controller.abort()
+  }, [])
 
   if (loading) return <div className="p-4 text-muted">Loading collapse feed...</div>
 

@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: path-dashboard
+    runtime: docker
+    repo: https://github.com/DONSystemsLLC/path-dashboard-frontend
+    branch: main
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # Build-time variables (baked into JS bundle)
+      - key: VITE_PATH_API_BASE
+        value: https://codex-engine-backend.onrender.com
+      - key: VITE_GLYPH_STREAM
+        value: Ψ_PATH_COLLAPSE
+      - key: VITE_PATH_API_KEY
+        sync: false  # Secret - set manually in Render dashboard
+
+      # Runtime variables (used by start.sh boot script)
+      - key: QCCS_API_URL
+        sync: false  # QCCS broadcast endpoint - set manually
+      - key: QCCS_API_KEY
+        sync: false  # Secret - set manually in Render dashboard
+      - key: PATH_TENANT_ID
+        sync: false  # Tenant ID for collapse broadcasts - set manually
