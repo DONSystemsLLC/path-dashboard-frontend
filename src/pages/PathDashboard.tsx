@@ -6,7 +6,7 @@ import axios from "axios"
 import CollapseFeed from "@/components/CollapseFeed"
 
 const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://api.resotrace.com"
-const API_KEY = import.meta.env.VITE_PATH_API_KEY
+const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN
 
 interface HealthData {
   glyph: string
@@ -25,7 +25,11 @@ export default function PathDashboard() {
     async function fetchHealth() {
       try {
         const res = await axios.get<HealthData>(`${PATH_API_BASE}/api/path/dashboard/overview`, {
-          headers: { "X-API-Key": API_KEY },
+          headers: { 
+            "Authorization": `Bearer ${AUTH_TOKEN}`,
+            "Content-Type": "application/json"
+          },
+          withCredentials: true,
           signal: controller.signal
         })
         setHealth(res.data)

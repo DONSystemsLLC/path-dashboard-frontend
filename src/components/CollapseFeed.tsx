@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 
 const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE
-const API_KEY = import.meta.env.VITE_PATH_API_KEY
+const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN
 const GLYPH_STREAM = import.meta.env.VITE_GLYPH_STREAM || "Ψ_PATH_COLLAPSE"
 
 interface CollapseEvent {
@@ -27,7 +27,11 @@ export default function CollapseFeed() {
         const res = await axios.get<{ events: CollapseEvent[] }>(
           `${PATH_API_BASE}/api/path/collapse-feed?topic=${encodeURIComponent(GLYPH_STREAM)}`,
           {
-            headers: { "X-API-Key": API_KEY },
+            headers: { 
+              "Authorization": `Bearer ${AUTH_TOKEN}`,
+              "Content-Type": "application/json"
+            },
+            withCredentials: true,
             signal: controller.signal
           }
         )

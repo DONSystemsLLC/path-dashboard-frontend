@@ -2,121 +2,174 @@
 
 ## Project Overview
 
-This is a React 19 + TypeScript + Vite frontend for the PATH (Ψ) Dashboard - a monitoring interface for the DON (Distributed Order Network) Codex backend. The app displays real-time quantum-classical compute system health metrics including coherence scores, drift scores, and system status.
+React 19 + TypeScript + Vite SPA monitoring the DON Codex PATH (Ψ) quantum-classical compute system. Displays real-time health metrics (coherence/drift scores) and collapse event feeds for quantum wavefunction measurement operations.
 
-## Critical Architecture Patterns
+## Architecture & Component Patterns
 
-### Component Import Pattern - INCOMPLETE SETUP
-The codebase uses `@/components/*` path aliases in [src/pages/PathDashboard.tsx](../src/pages/PathDashboard.tsx) BUT:
-- **Path resolution is NOT configured** in [vite.config.ts](../vite.config.ts) or [tsconfig.app.json](../tsconfig.app.json)
-- The `@/components/ui/*` components (Card, Button, Badge) are **referenced but don't exist yet**
-- These appear to be planned Shadcn/ui components that need installation
+### Custom UI Component System
+Lightweight custom implementation (NOT Shadcn/ui) in `src/components/ui/`:
+- **Card/CardContent**: Minimal wrapper components with TailwindCSS classes
+- **Button**: Variant-based styling (`default`, `outline`, `ghost`)
+- **Badge**: Simple inline status indicators (`default`, `outline`)
+- All use `forwardRef` pattern for proper ref forwarding
+- Extend base HTML element props (`ButtonHTMLAttributes`, `HTMLAttributes<HTMLDivElement>`)
 
-**Action Required:** When adding components, either:
-1. Install Shadcn/ui and configure path aliases properly, OR
-2. Use relative imports until the UI library is set up
+Pattern for new UI components:
+```tsx
+import { forwardRef } from 'react'
+import type { HTMLAttributes } from 'react'
+
+interface ComponentProps extends HTMLAttributes<HTMLDivElement> {
+  variant?: 'default' | 'custom'
+}
+
+export const Component = forwardRef<HTMLDivElement, ComponentProps>(
+  ({ className = '', variant = 'default', ...props }, ref) => (
+    <div ref={ref} className={`base-classes ${className}`} {...props} />
+  )
+)
+Component.displayName = 'Component'
+```
+
+### Path Aliases (Configured)
+- `@/*` resolves to `./src/*` (configured in both [vite.config.ts](vite.config.ts) and [tsconfig.app.json](tsconfig.app.json))
+- Use `@/components/ui/card` for absolute imports from src root
 
 ### Environment Variables
-Required environment variables (accessed via `import.meta.env`):
-- `VITE_PATH_API_BASE` - Backend API URL (defaults to `https://codex-engine-backend.onrender.com`)
-- `VITE_PATH_API_KEY` - API authentication key for `/api/path/dashboard/overview` endpoint
+**Required** for runtime (accessed via `import.meta.env`):
+- `VITE_PATH_API_BASE` - Backend URL (prod: `https://api.resotrace.com`)
+- `VITE_AUTH_TOKEN` - Bearer token for API authentication (`/api/path/dashboard/overview` and `/api/path/collapse-feed`)
+- `VITE_GLYPH_STREAM` - Collapse feed topic filter (default: `Ψ_PATH_COLLAPSE`)
 
-Create `.env.local` for local development:
+**Optional** runtime-only vars (used by [start.sh](start.sh), NOT in JS bundle):
+- `QCCS_API_URL`, `QCCS_API_KEY`, `PATH_TENANT_ID` - For ΞΔ collapse broadcasts on container startup
+
+`.env.local` example:
 ```bash
 VITE_PATH_API_BASE=http://localhost:3000
-VITE_PATH_API_KEY=your-api-key-here
+VITE_AUTH_TOKEN=your-bearer-token
+VITE_GLYPH_STREAM=Ψ_PATH_COLLAPSE
 ```
 
 ### API Integration Pattern
-Direct axios usage for API calls (no React Query wrapper yet):
-- Backend endpoint: `${API_BASE}/api/path/dashboard/overview`
-- Authentication: `X-API-Key` header
-- Polling interval: 60 seconds
-- Expected response shape: `{ glyph, status, coherence_score, drift_score }`
+Direct **axios** usage (no React Query):
+- All endpoints require `Authorization: Bearer` token authentication
+- Include `withCredentials: true` for cookie-based sessions
+- Use `AbortController` for cleanup in `useEffect` cleanup functions
+- Pattern: fetch on mount + interval polling (e.g., 60s for health checks)
+- Handle loading states explicitly with `useState<boolean>`
 
-## Development Workflow
-
-### Essential Commands
-```bash
-npm run dev         # Start dev server with HMR (default port 5173)
-npm run build       # TypeScript compile + Vite production build
-npm run lint        # ESLint check on all .ts/.tsx files
-npm run preview     # Preview production build locally
+Example from [CollapseFeed.tsx](src/components/CollapseFeed.tsx):
+```tsx
+useEffect(() => {
+  const controller = new AbortController()
+  async function fetch() {
+    try {
+      const res = await axios.get(url, { 
+        headers: { 
+          "Authorization": `Bearer ${AUTH_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        withCredentials: true,
+        signal: controller.signal 
+      })
+      setState(res.data)
+    } catch (err) {
+      if (!controller.signal.aborted) console.error(err)
+    } finally {
+      if (!controller.signal.aborted) setLoading(false)
+    }
+  }
+  void fetch()
+  return () => controller.abort()
+}, [])
 ```
 
-### TypeScript Configuration
-- **Strict mode enabled**: `"strict": true` with additional checks
-- **Bundler module resolution**: Uses Vite's bundler strategy
-- **Verbatim module syntax**: Import statements preserved as-is
-- **No unused vars/params**: Compiler enforces cleanup
-- **React 19 JSX**: Uses new `react-jsx` transform
+## Development Commands
 
-### Linting Rules (ESLint Flat Config)
-Uses modern ESLint 9+ flat config pattern:
-- React Hooks rules enforced (correct dependency arrays)
-- React Refresh rules for HMR compatibility
+```bash
+npm run dev         # Vite dev server (port 5173, HMR enabled)
+npm run build       # TypeScript check + production build
+npm run lint        # ESLint check (must pass before commits)
+npm run preview     # Test production build locally
+```
+
+## TypeScript & Linting
+
+**TypeScript strictness** ([tsconfig.app.json](tsconfig.app.json)):
+- `strict: true` + `noUnusedLocals` + `noUnusedParameters` enabled
+- Path alias: `@/*` maps to `./src/*`
+- React 19 JSX transform (`"jsx": "react-jsx"`)
+
+**ESLint** (flat config in [eslint.config.js](eslint.config.js)):
+- React Hooks dependency array enforcement
+- React Refresh fast reload compatibility checks
 - TypeScript-ESLint recommended rules
-- Run `npm run lint` before committing
 
-## Domain-Specific Context
+## Domain Terminology
 
-### PATH/DON Terminology
-This dashboard monitors quantum-classical hybrid compute systems:
-- **ΞΔ (Xi Delta)**: Quantum system health indicator
-- **Ψ (Psi)**: Quantum wavefunction collapse/measurement operations
-- **Coherence Score**: Quantum state stability metric (0-1 scale)
-- **Drift Score**: Baseline deviation metric
-- **Glyph**: System state identifier/hash
+**PATH/DON Quantum-Classical System:**
+- **ΞΔ (Xi Delta)**: System health anchor, broadcast on container boot
+- **Ψ (Psi)**: Wavefunction collapse operations/measurement events
+- **Coherence Score**: Quantum stability (0-1 scale, ≥0.8 = green, ≥0.5 = yellow, <0.5 = red)
+- **Drift Score**: Deviation from baseline reference
+- **Glyph**: Unique system state hash/identifier
+- **Collapse Feed**: Real-time event stream of quantum measurements
 
-### Styling Approach
-Currently uses TailwindCSS utility classes (`p-4`, `grid-cols-2`, `text-muted-foreground`). The `@/components/ui/*` references suggest a future Shadcn/ui integration, but vanilla CSS is present in [src/App.css](../src/App.css) and [src/index.css](../src/index.css).
+See [PathDashboard.tsx](src/pages/PathDashboard.tsx) for metric color thresholds.
 
-## Deployment
+## Deployment & Docker
 
-**Docker Multi-Stage Build** ([Dockerfile](../Dockerfile)):
-1. Node 18 Alpine builder: `npm install && npm run build`
-2. Nginx Alpine server: Static files served from `/usr/share/nginx/html`
-3. Exposes port 80
+**Multi-stage build** ([Dockerfile](Dockerfile)):
+1. Node 18 Alpine: `npm ci && npm run build`
+2. Nginx Alpine: Serve static files from `/usr/share/nginx/html`
 
-Likely deployed to Render.com (backend URL suggests this).
+**Container startup** ([start.sh](start.sh)):
+- Health check: Verifies nginx serves on port 80
+- **ΞΔ broadcast**: Auto-sends collapse event to QCCS API if `QCCS_API_URL` + `QCCS_API_KEY` set
+- CollapseFeed snapshot: Renders initial HTML from API data
 
-## Known Issues & TODOs
+**Render.com deployment** ([render.yaml](render.yaml)):
+- Free tier web service with Docker runtime
+- Build-time: `VITE_*` vars baked into JS bundle
+- Runtime: `QCCS_*` + `PATH_TENANT_ID` used only by start.sh boot script
 
-1. **Missing UI Component Library**: Card, Button, Badge components referenced but not installed
-2. **Missing Path Alias Config**: `@/` imports will fail without Vite/TypeScript config
-3. **No Error Boundaries**: API failures display raw error states
-4. **Hardcoded Styling Values**: Dynamic Tailwind classes (`text-${color}-500`) don't work with JIT - need conditional class names
-5. **Missing Axios Dependency**: PathDashboard imports axios but it's not in package.json
-
-## File Organization
+## File Structure
 
 ```
 src/
-├── main.tsx           # React 19 entry point with StrictMode
-├── App.tsx            # Root component (currently Vite template)
+├── main.tsx                  # React 19 entry (StrictMode)
+├── App.tsx                   # Root component → PathDashboard
 ├── pages/
-│   └── PathDashboard.tsx  # Main dashboard component
-└── assets/            # Static assets (logos, images)
+│   └── PathDashboard.tsx     # Main dashboard (health cards + collapse feed)
+├── components/
+│   ├── CollapseFeed.tsx      # Event stream component
+│   └── ui/                   # Custom UI primitives (forwardRef pattern)
+│       ├── card.tsx
+│       ├── button.tsx
+│       └── badge.tsx
 ```
 
-**Convention:** Pages go in `src/pages/`, but routing is not yet set up. Currently App.tsx is not connected to PathDashboard.tsx.
+## Common Gotchas
 
-## Adding New Features
+1. **Dynamic Tailwind classes DON'T work**: `text-${color}-500` breaks JIT mode. Use conditional class strings:
+   ```tsx
+   const getColor = (score: number) => {
+     if (score >= 0.8) return "text-green-500"
+     if (score >= 0.5) return "text-yellow-500"
+     return "text-red-500"
+   }
+   ```
 
-When creating new components:
-1. Use functional components with hooks (React 19 patterns)
-2. Add proper TypeScript interfaces for props and state
-3. Follow the polling pattern in PathDashboard for real-time data
-4. Use environment variables for configurable values
-5. Add proper error handling and loading states
+2. **Always abort fetch on unmount**:
+   ```tsx
+   useEffect(() => {
+     const controller = new AbortController()
+     // ... fetch logic ...
+     return () => controller.abort()
+   }, [])
+   ```
 
-Example component structure:
-```typescript
-interface ComponentProps {
-  prop: string
-}
+3. **Environment variables**: Only `VITE_*` prefixed vars are in browser bundle. Others (QCCS_*, PATH_TENANT_ID) are server-side only.
 
-export default function Component({ prop }: ComponentProps) {
-  // Implementation
-}
-```
+4. **Void operator for async effects**: Use `void fetch()` to satisfy ESLint no-floating-promises rule
