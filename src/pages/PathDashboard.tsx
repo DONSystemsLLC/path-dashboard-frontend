@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import axios from "axios"
+import CollapseFeed from "@/components/CollapseFeed"
 
 const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://codex-engine-backend.onrender.com"
 const API_KEY = import.meta.env.VITE_PATH_API_KEY
@@ -79,6 +80,10 @@ export default function PathDashboard() {
           </Button>
         </CardContent>
       </Card>
+
+      <div className="col-span-2 mt-6">
+        <CollapseFeed />
+      </div>
     </div>
   )
 }
