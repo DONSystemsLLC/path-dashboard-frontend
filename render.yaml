@@ -9,7 +9,7 @@ services:
     envVars:
       # Build-time variables (baked into JS bundle)
       - key: VITE_PATH_API_BASE
-        value: https://codex-engine-backend.onrender.com
+        value: https://api.resotrace.com
       - key: VITE_GLYPH_STREAM
         value: Ψ_PATH_COLLAPSE
       - key: VITE_PATH_API_KEY

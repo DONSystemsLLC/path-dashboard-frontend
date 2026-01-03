@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import axios from "axios"
 import CollapseFeed from "@/components/CollapseFeed"
 
-const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://codex-engine-backend.onrender.com"
+const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://api.resotrace.com"
 const API_KEY = import.meta.env.VITE_PATH_API_KEY
 
 interface HealthData {
