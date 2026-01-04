@@ -4,11 +4,15 @@
 
 React 19 + TypeScript + Vite SPA monitoring the DON Codex PATH (Ψ) quantum-classical compute system. Displays real-time health metrics (coherence/drift scores) and collapse event feeds for quantum wavefunction measurement operations.
 
+**Key API Endpoints:**
+- `GET /api/path/dashboard/overview` - Health data (coherence_score, drift_score, glyph, status)
+- `GET /api/path/collapse-feed?topic={topic}` - Collapse event stream
+
 ## Architecture & Component Patterns
 
 ### Custom UI Component System
 Lightweight custom implementation (NOT Shadcn/ui) in `src/components/ui/`:
-- **Card/CardContent**: Minimal wrapper components with TailwindCSS classes
+- **Card/CardContent**: Minimal wrapper components with TailwindCSS semantic classes
 - **Button**: Variant-based styling (`default`, `outline`, `ghost`)
 - **Badge**: Simple inline status indicators (`default`, `outline`)
 - All use `forwardRef` pattern for proper ref forwarding
@@ -123,6 +127,7 @@ See [PathDashboard.tsx](src/pages/PathDashboard.tsx) for metric color thresholds
 **Multi-stage build** ([Dockerfile](Dockerfile)):
 1. Node 18 Alpine: `npm ci && npm run build`
 2. Nginx Alpine: Serve static files from `/usr/share/nginx/html`
+3. Runtime dependencies: `curl`, `jq`, `bc` (for start.sh scripting)
 
 **Container startup** ([start.sh](start.sh)):
 - Health check: Verifies nginx serves on port 80
