@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import axios from "axios"
 import CollapseFeed from "@/components/CollapseFeed"
 import TemporalCollapseOverlay from "@/components/TemporalCollapseOverlay"
+import PathSelfReflectionPanel from "@/components/PathSelfReflectionPanel"
 
 const PATH_API_BASE = import.meta.env.VITE_PATH_API_BASE || "https://api.resotrace.com"
 const AUTH_TOKEN = import.meta.env.VITE_AUTH_TOKEN
@@ -100,6 +101,10 @@ export default function PathDashboard() {
 
       <div className="col-span-2 mt-6">
         <TemporalCollapseOverlay />
+      </div>
+
+      <div className="col-span-2 mt-6">
+        <PathSelfReflectionPanel />
       </div>
     </div>
   )
