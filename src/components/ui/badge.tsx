@@ -2,7 +2,7 @@ import { forwardRef } from 'react'
 import type { HTMLAttributes } from 'react'
 
 interface BadgeProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'outline'
+  variant?: 'default' | 'outline' | 'destructive'
 }
 
 export const Badge = forwardRef<HTMLDivElement, BadgeProps>(
@@ -10,6 +10,7 @@ export const Badge = forwardRef<HTMLDivElement, BadgeProps>(
     const variantClasses = {
       default: 'border-transparent bg-primary text-primary-foreground',
       outline: 'text-foreground',
+      destructive: 'border-transparent bg-red-500 text-white',
     }
 
     return (
